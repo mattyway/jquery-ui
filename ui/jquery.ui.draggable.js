@@ -43,6 +43,7 @@ $.widget("ui.draggable", $.ui.mouse, {
 		snapTolerance: 20,
 		stack: false,
 		zIndex: false,
+		highest: false,
 
 		// callbacks
 		drag: null,
@@ -168,6 +169,7 @@ $.widget("ui.draggable", $.ui.mouse, {
 
 		//Prepare the droppable offsets
 		if ($.ui.ddmanager && !o.dropBehaviour) {
+			$.ui.ddmanager.zStack[this.options.scope] = [];
 			$.ui.ddmanager.prepareOffsets(this, event);
 		}
 
