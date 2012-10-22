@@ -26,7 +26,8 @@ $.widget("ui.droppable", {
 		greedy: false,
 		hoverClass: false,
 		scope: 'default',
-		tolerance: 'intersect'
+		tolerance: 'intersect',
+		andSelf: false
 	},
 	_create: function() {
 
@@ -79,14 +80,43 @@ $.widget("ui.droppable", {
 		(draggable && this._trigger('deactivate', event, this.ui(draggable)));
 	},
 
+	_triggerOver: function(event, draggable) {
+		if(this.options.hoverClass) this.element.addClass(this.options.hoverClass);
+		this._trigger('over', event, this.ui(draggable));
+	},
+
+	_triggerOut: function(event, draggable) {
+		if(this.options.hoverClass) this.element.removeClass(this.options.hoverClass);
+		this._trigger('out', event, this.ui(draggable));
+	},
+
 	_over: function(event) {
 
 		var draggable = $.ui.ddmanager.current;
-		if (!draggable || (draggable.currentItem || draggable.element)[0] == this.element[0]) return; // Bail if draggable and droppable are same element
+		if (!draggable || ((draggable.currentItem || draggable.element)[0] == this.element[0] && !this.options.andSelf)) return; // Bail if draggable and droppable are same element
 
 		if (this.accept.call(this.element[0],(draggable.currentItem || draggable.element))) {
-			if(this.options.hoverClass) this.element.addClass(this.options.hoverClass);
-			this._trigger('over', event, this.ui(draggable));
+			if(!draggable.options.highest) {
+				this._triggerOver(event, draggable);
+			}
+			else {
+				var zStack = $.ui.ddmanager.zStack[draggable.options.scope];
+				
+				if(zStack.indexOf(this) == -1) {
+					var lastHighest = zStack[zStack.length - 1];
+
+					zStack.push(this);
+
+					zStack.sort(this._sortHighest);
+
+					var newHighest = zStack[zStack.length - 1];
+
+					if(lastHighest !== newHighest) {
+						if(lastHighest != null) lastHighest._triggerOut(event, draggable);
+						if(newHighest != null) newHighest._triggerOver(event, draggable);
+					}
+				}
+			}
 		}
 
 	},
@@ -94,11 +124,28 @@ $.widget("ui.droppable", {
 	_out: function(event) {
 
 		var draggable = $.ui.ddmanager.current;
-		if (!draggable || (draggable.currentItem || draggable.element)[0] == this.element[0]) return; // Bail if draggable and droppable are same element
+		if (!draggable || ((draggable.currentItem || draggable.element)[0] == this.element[0] && !this.options.andSelf)) return; // Bail if draggable and droppable are same element
 
 		if (this.accept.call(this.element[0],(draggable.currentItem || draggable.element))) {
-			if(this.options.hoverClass) this.element.removeClass(this.options.hoverClass);
-			this._trigger('out', event, this.ui(draggable));
+			if(!draggable.options.highest) {
+				this._triggerOut(event, draggable);
+			}
+			else {
+				var zStack = $.ui.ddmanager.zStack[draggable.options.scope];
+
+				var lastHighest = zStack[zStack.length - 1];
+
+				zStack.splice(zStack.indexOf(this), 1);
+
+				zStack.sort(this._sortHighest);
+
+				var newHighest = zStack[zStack.length - 1];
+
+				if(lastHighest !== newHighest) {
+					if(lastHighest != null) lastHighest._triggerOut(event, draggable);
+					if(newHighest != null) newHighest._triggerOver(event, draggable);
+				}
+			}
 		}
 
 	},
@@ -106,8 +153,21 @@ $.widget("ui.droppable", {
 	_drop: function(event,custom) {
 
 		var draggable = custom || $.ui.ddmanager.current;
-		if (!draggable || (draggable.currentItem || draggable.element)[0] == this.element[0]) return false; // Bail if draggable and droppable are same element
+		if (!draggable || ((draggable.currentItem || draggable.element)[0] == this.element[0] && !this.options.andSelf)) return false; // Bail if draggable and droppable are same element
 
+		if(!draggable.options.highest) {
+			return this._triggerDrop(event, draggable);
+		}
+		else {
+			var zStack = $.ui.ddmanager.zStack[draggable.options.scope];
+
+			if(this == zStack[zStack.length - 1]) {
+				return this._triggerDrop(this, draggable);
+			}
+		}
+	},
+
+	_triggerDrop: function(event, draggable) {
 		var childrenIntersection = false;
 		this.element.find(":data(droppable)").not(".ui-draggable-dragging").each(function() {
 			var inst = $.data(this, 'droppable');
@@ -130,6 +190,21 @@ $.widget("ui.droppable", {
 
 		return false;
 
+	},
+
+	_sortHighest: function(a, b) {
+		var zIndexA = parseInt(a.element.css("z-index"), 10);
+		var zIndexB = parseInt(b.element.css("z-index"), 10);
+
+		if(zIndexA !== zIndexB) {
+			return zIndexA - zIndexB;
+		}
+
+		// If elements share a z-index, the element that is later in the DOM is on top.
+		var indexA = a.element.index();
+		var indexB = b.element.index();
+
+		return indexA - indexB;
 	},
 
 	ui: function(c) {
@@ -193,6 +268,7 @@ $.ui.intersect = function(draggable, droppable, toleranceMode) {
 $.ui.ddmanager = {
 	current: null,
 	droppables: { 'default': [] },
+	zStack: { 'default': [] },
 	prepareOffsets: function(t, event) {
 
 		var m = $.ui.ddmanager.droppables[t.options.scope] || [];
@@ -202,7 +278,7 @@ $.ui.ddmanager = {
 		droppablesLoop: for (var i = 0; i < m.length; i++) {
 
 			if(m[i].options.disabled || (t && !m[i].accept.call(m[i].element[0],(t.currentItem || t.element)))) continue;	//No disabled and non-accepted
-			for (var j=0; j < list.length; j++) { if(list[j] == m[i].element[0]) { m[i].proportions.height = 0; continue droppablesLoop; } }; //Filter out elements in the current dragged item
+			for (var j=0; j < list.length; j++) { if(list[j] == m[i].element[0] && !m[i].options.andSelf) { m[i].proportions.height = 0; continue droppablesLoop; } }; //Filter out elements in the current dragged item
 			m[i].visible = m[i].element.css("display") != "none"; if(!m[i].visible) continue; 									//If the element is not visible, continue
 
 			if(type == "mousedown") m[i]._activate.call(m[i], event); //Activate the droppable if used directly from draggables
@@ -232,6 +308,7 @@ $.ui.ddmanager = {
 
 	},
 	dragStart: function( draggable, event ) {
+
 		//Listen for scrolling so that if the dragging causes scrolling the position of the droppables can be recalculated (see #5003)
 		draggable.element.parentsUntil( "body" ).bind( "scroll.droppable", function() {
 			if( !draggable.options.refreshPositions ) $.ui.ddmanager.prepareOffsets( draggable, event );

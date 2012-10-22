@@ -42,7 +42,8 @@ $.widget("ui.draggable", $.ui.mouse, {
 		snapMode: "both",
 		snapTolerance: 20,
 		stack: false,
-		zIndex: false
+		zIndex: false,
+		highest: false
 	},
 	_create: function() {
 
@@ -154,8 +155,10 @@ $.widget("ui.draggable", $.ui.mouse, {
 		this._cacheHelperProportions();
 
 		//Prepare the droppable offsets
-		if ($.ui.ddmanager && !o.dropBehaviour)
+		if ($.ui.ddmanager && !o.dropBehaviour) {
+			$.ui.ddmanager.zStack[this.options.scope] = [];
 			$.ui.ddmanager.prepareOffsets(this, event);
+		}
 
 		
 		this._mouseDrag(event, true); //Execute the drag once - this causes the helper not to be visible before getting its correct position
