@@ -619,7 +619,7 @@ each( stepHooks, function( i, hook ) {
 			}
 			try {
 				elem.style[ hook ] = value;
-			} catch( value ) {
+			} catch( error ) {
 				// wrapped to prevent IE from throwing errors on "invalid" values like 'auto' or 'inherit'
 			}
 		}
@@ -1054,8 +1054,8 @@ function _normalizeArguments( effect, options, speed, callback ) {
 	// convert to an object
 	effect = { effect: effect };
 
-	// catch (effect)
-	if ( options === undefined ) {
+	// catch (effect, null, ...)
+	if ( options == null ) {
 		options = {};
 	}
 
