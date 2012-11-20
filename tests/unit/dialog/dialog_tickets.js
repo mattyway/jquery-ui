@@ -39,18 +39,18 @@ test("#4826: setting resizable false toggles resizable on dialog", function() {
 	var i;
 
 	el = $('<div></div>').dialog({ resizable: false });
-	shouldnotresize("[default]");
+	TestHelpers.shouldnotresize("[default]");
 	for (i=0; i<2; i++) {
 		el.dialog('close').dialog('open');
-		shouldnotresize('initialized with resizable false toggle ('+ (i+1) +')');
+		TestHelpers.shouldnotresize('initialized with resizable false toggle ('+ (i+1) +')');
 	}
 	el.remove();
 
 	el = $('<div></div>').dialog({ resizable: true });
-	shouldresize("[default]");
+	TestHelpers.shouldresize("[default]");
 	for (i=0; i<2; i++) {
 		el.dialog('close').dialog('option', 'resizable', false).dialog('open');
-		shouldnotresize('set option resizable false toggle ('+ (i+1) +')');
+		TestHelpers.shouldnotresize('set option resizable false toggle ('+ (i+1) +')');
 	}
 	el.remove();
 
@@ -125,7 +125,7 @@ test("#6966: Escape key closes all dialogs, not the top one", function(){
 
     ok(d1.data('dialog') && d1.dialog('isOpen'), 'first dialog is open');
     ok(d2.data('dialog') && d2.dialog('isOpen'), 'second dialog is open');
-    
+
     $( document ).simulate('keydown', {keyCode: $.ui.keyCode.ESCAPE});
     ok(d1.data('dialog') && d1.dialog('isOpen'), 'first dialog still open');
     ok(!d2.data('dialog'), 'second dialog is closed');
@@ -136,14 +136,14 @@ test("#6966: Escape key closes all dialogs, not the top one", function(){
 
     d2.remove();
     d1.remove();
-    
+
 	// test with close function removing dialog triggered through the dialog
     d1 = $('<div title="dialog 1">Dialog 1</div>').dialog({modal: true, close: function(){ d1.remove(); }});
     d2 = $('<div title="dialog 2">Dialog 2</div>').dialog({modal: true, close: function(){ d2.remove(); }});
 
     ok(d1.data('dialog') && d1.dialog('isOpen'), 'first dialog is open');
     ok(d2.data('dialog') && d2.dialog('isOpen'), 'second dialog is open');
-    
+
     d2.simulate('keydown', {keyCode: $.ui.keyCode.ESCAPE});
     ok(d1.data('dialog') && d1.dialog('isOpen'), 'first dialog still open');
     ok(!d2.data('dialog'), 'second dialog is closed');

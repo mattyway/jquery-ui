@@ -53,20 +53,20 @@ asyncTest( "cache", function() {
 	var element = $( "#tabs2" ).tabs({
 		cache: true
 	});
-	element.one( "tabsshow", function( event, ui ) {
+	element.one( "tabsshow", function() {
 		state( element, 0, 0, 1, 0, 0 );
 	});
-	element.one( "tabsload", function( event, ui ) {
+	element.one( "tabsload", function() {
 		ok( true, "tabsload" );
 
 		setTimeout(function() {
 			element.tabs( "option", "active", 0 );
 			state( element, 1, 0, 0, 0, 0 );
 
-			element.one( "tabsshow", function( event, ui ) {
+			element.one( "tabsshow", function() {
 				state( element, 0, 0, 1, 0, 0 );
 			});
-			element.one( "tabsload", function( event, ui ) {
+			element.one( "tabsload", function() {
 				ok( false, "should be cached" );
 			});
 			element.tabs( "option", "active", 2 );
@@ -159,10 +159,10 @@ asyncTest( "spinner", function() {
 
 	var element = $( "#tabs2" ).tabs();
 
-	element.one( "tabsbeforeload", function( event, ui ) {
+	element.one( "tabsbeforeload", function() {
 		equal( element.find( ".ui-tabs-nav li:eq(2) em" ).length, 1, "beforeload" );
 	});
-	element.one( "tabsload", function( event, ui ) {
+	element.one( "tabsload", function() {
 		// wait until after the load finishes before checking for the spinner to be removed
 		setTimeout(function() {
 			equal( element.find( ".ui-tabs-nav li:eq(2) em" ).length, 0, "load" );
@@ -351,7 +351,7 @@ test( "show", function() {
 	state( element, 0, 1, 0 );
 
 	// collapsing
-	element.one( "tabsshow", function( event, ui ) {
+	element.one( "tabsshow", function() {
 		ok( false, "collapsing" );
 	});
 	element.tabs( "option", "active", false );
@@ -359,7 +359,7 @@ test( "show", function() {
 });
 
 test( "select", function() {
-	expect( 13 );
+	expect( 18 );
 
 	var element = $( "#tabs1" ).tabs({
 			active: false,
@@ -392,7 +392,11 @@ test( "select", function() {
 
 	// collapsing
 	element.one( "tabsselect", function( event, ui ) {
-		ok( false, "collapsing" );
+		ok( !( "originalEvent" in event ), "originalEvent" );
+		strictEqual( ui.tab, anchors[ 1 ], "ui.tab" );
+		strictEqual( ui.panel, panels[ 1 ], "ui.panel" );
+		equal( ui.index, 1, "ui.index" );
+		state( element, 0, 1, 0 );
 	});
 	element.tabs( "option", "active", false );
 	state( element, 0, 0, 0 );

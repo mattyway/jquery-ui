@@ -52,9 +52,9 @@ $.widget( "ui.tooltip", {
 		// Disabled elements have inconsistent behavior across browsers (#8661)
 		items: "[title]:not([disabled])",
 		position: {
-			my: "left+15 center",
-			at: "right center",
-			collision: "flipfit flipfit"
+			my: "left top+15",
+			at: "left bottom",
+			collision: "flipfit flip"
 		},
 		show: true,
 		tooltipClass: null,
@@ -75,6 +75,10 @@ $.widget( "ui.tooltip", {
 		this.tooltips = {};
 		// IDs of parent tooltips where we removed the title attribute
 		this.parents = {};
+
+		if ( this.options.disabled ) {
+			this._disable();
+		}
 	},
 
 	_setOption: function( key, value ) {
@@ -134,20 +138,8 @@ $.widget( "ui.tooltip", {
 				// but always pointing at the same event target
 				.closest( this.options.items );
 
-		// No element to show a tooltip for
-		if ( !target.length ) {
-			return;
-		}
-
-		// If the tooltip is open and we're tracking then reposition the tooltip.
-		// This makes sure that a tracking tooltip doesn't obscure a focused element
-		// if the user was hovering when the element gained focused.
-		if ( this.options.track && target.data( "ui-tooltip-id" ) ) {
-			this._find( target ).position( $.extend({
-				of: target
-			}, this.options.position ) );
-			// Stop tracking (#8622)
-			this._off( this.document, "mousemove" );
+		// No element to show a tooltip for or the tooltip is already open
+		if ( !target.length || target.data( "ui-tooltip-id" ) ) {
 			return;
 		}
 
@@ -155,24 +147,25 @@ $.widget( "ui.tooltip", {
 			target.data( "ui-tooltip-title", target.attr( "title" ) );
 		}
 
-		target.data( "tooltip-open", true );
+		target.data( "ui-tooltip-open", true );
 
 		// kill parent tooltips, custom or native, for hover
 		if ( event && event.type === "mouseover" ) {
 			target.parents().each(function() {
-				var blurEvent;
-				if ( $( this ).data( "tooltip-open" ) ) {
+				var parent = $( this ),
+					blurEvent;
+				if ( parent.data( "ui-tooltip-open" ) ) {
 					blurEvent = $.Event( "blur" );
 					blurEvent.target = blurEvent.currentTarget = this;
 					that.close( blurEvent, true );
 				}
-				if ( this.title ) {
-					$( this ).uniqueId();
+				if ( parent.attr( "title" ) ) {
+					parent.uniqueId();
 					that.parents[ this.id ] = {
 						element: this,
-						title: this.title
+						title: parent.attr( "title" )
 					};
-					this.title = "";
+					parent.attr( "title", "" );
 				}
 			});
 		}
@@ -183,7 +176,8 @@ $.widget( "ui.tooltip", {
 	_updateContent: function( target, event ) {
 		var content,
 			contentOption = this.options.content,
-			that = this;
+			that = this,
+			eventType = event ? event.type : null;
 
 		if ( typeof contentOption === "string" ) {
 			return this._open( event, target, contentOption );
@@ -191,12 +185,20 @@ $.widget( "ui.tooltip", {
 
 		content = contentOption.call( target[0], function( response ) {
 			// ignore async response if tooltip was closed already
-			if ( !target.data( "tooltip-open" ) ) {
+			if ( !target.data( "ui-tooltip-open" ) ) {
 				return;
 			}
 			// IE may instantly serve a cached response for ajax requests
 			// delay this call to _open so the other call to _open runs first
 			that._delay(function() {
+				// jQuery creates a special event for focusin when it doesn't
+				// exist natively. To improve performance, the native event
+				// object is reused and the type is changed. Therefore, we can't
+				// rely on the type being correct after the event finished
+				// bubbling, so we set it back to the previous value. (#8740)
+				if ( event ) {
+					event.type = eventType;
+				}
 				this._open( event, target, response );
 			});
 		});
@@ -247,7 +249,7 @@ $.widget( "ui.tooltip", {
 			}
 			tooltip.position( positionOption );
 		}
-		if ( this.options.track && event && /^mouse/.test( event.originalEvent.type ) ) {
+		if ( this.options.track && event && /^mouse/.test( event.type ) ) {
 			this._on( this.document, {
 				mousemove: position
 			});
@@ -284,7 +286,7 @@ $.widget( "ui.tooltip", {
 					this.close( fakeEvent, true );
 				}
 			},
-			remove: function( event ) {
+			remove: function() {
 				this._removeTooltip( tooltip );
 			}
 		};
@@ -294,10 +296,10 @@ $.widget( "ui.tooltip", {
 		if ( !event || event.type === "focusin" ) {
 			events.focusout = "close";
 		}
-		this._on( target, events );
+		this._on( true, target, events );
 	},
 
-	close: function( event, force ) {
+	close: function( event ) {
 		var that = this,
 			target = $( event ? event.currentTarget : this.element ),
 			tooltip = this._find( target );
@@ -320,7 +322,7 @@ $.widget( "ui.tooltip", {
 			that._removeTooltip( $( this ) );
 		});
 
-		target.removeData( "tooltip-open" );
+		target.removeData( "ui-tooltip-open" );
 		this._off( target, "mouseleave focusout keyup" );
 		// Remove 'remove' binding only on delegated targets
 		if ( target[0] !== this.element[0] ) {
@@ -330,7 +332,7 @@ $.widget( "ui.tooltip", {
 
 		if ( event && event.type === "mouseleave" ) {
 			$.each( this.parents, function( id, parent ) {
-				parent.element.title = parent.title;
+				$( parent.element ).attr( "title", parent.title );
 				delete that.parents[ id ];
 			});
 		}

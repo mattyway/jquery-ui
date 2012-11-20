@@ -2,6 +2,14 @@
 
 module( "tooltip: options" );
 
+test( "disabled: true", function() {
+	expect( 1 );
+	$( "#tooltipped1" ).tooltip({
+		disabled: true
+	}).tooltip( "open" );
+	equal( $( ".ui-tooltip" ).length, 0 );
+});
+
 test( "content: default", function() {
 	expect( 1 );
 	var element = $( "#tooltipped1" ).tooltip().tooltip( "open" );
@@ -67,7 +75,7 @@ test( "content: change while open", function() {
 
 test( "content: string", function() {
 	expect( 1 );
-	var element = $( "#tooltipped1" ).tooltip({
+	$( "#tooltipped1" ).tooltip({
 		content: "just a string",
 		open: function( event, ui ) {
 			equal( ui.tooltip.text(), "just a string" );
@@ -136,6 +144,14 @@ test( "track + show delay", function() {
 
 	equal( $( ".ui-tooltip" ).css( "left" ), leftVal + offsetVal + "px" );
 	equal( $( ".ui-tooltip" ).css( "top" ), topVal + offsetVal + "px" );
+});
+
+test( "track and programmatic focus", function() {
+	expect( 1 );
+	$( "#qunit-fixture div input" ).tooltip({
+		track: true
+	}).focus();
+	equal( "inputtitle", $( ".ui-tooltip" ).text() );
 });
 
 }( jQuery ) );

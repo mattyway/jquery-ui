@@ -1,9 +1,10 @@
-/*jshint node: true */
 module.exports = function( grunt ) {
+
+"use strict";
 
 var versions = {
 		"git": "git",
-		"1.8": "1.8.0 1.8.1 1.8.2",
+		"1.8": "1.8.0 1.8.1 1.8.2 1.8.3",
 		"1.7": "1.7 1.7.1 1.7.2",
 		"1.6": "1.6 1.6.1 1.6.2 1.6.3 1.6.4"
 	},
@@ -51,7 +52,7 @@ function submit( commit, tests, configFile, version, done ) {
 	}, {
 		authUsername: config.authUsername,
 		authToken: config.authToken,
-		jobName: 'jQuery UI ' + version + '#<a href="https://github.com/jquery/jquery-ui/commit/' + commit + '">' + commit.substr( 0, 10 ) + '</a>',
+		jobName: 'jQuery UI 1-9 ' + version + '#<a href="https://github.com/jquery/jquery-ui/commit/' + commit + '">' + commit.substr( 0, 10 ) + '</a>',
 		runMax: config.runMax,
 		"runNames[]": Object.keys(tests),
 		"runUrls[]": testUrls,

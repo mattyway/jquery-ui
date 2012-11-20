@@ -1,5 +1,6 @@
-/*jshint node: true */
 module.exports = function( grunt ) {
+
+"use strict";
 
 var
 	// files
@@ -305,7 +306,8 @@ grunt.initConfig({
 				"important": false,
 				"outline-none": false,
 				// especially this one
-				"overqualified-elements": false
+				"overqualified-elements": false,
+				"compatible-vendor-prefixes": false
 			}
 		}
 	},
@@ -326,9 +328,7 @@ grunt.initConfig({
 		}
 
 		return {
-			// TODO: use "faux strict mode" https://github.com/jshint/jshint/issues/504
-			// TODO: limit `smarttabs` to multi-line comments https://github.com/jshint/jshint/issues/503
-			options: parserc(),
+			grunt: parserc(),
 			ui: parserc( "ui/" ),
 			// TODO: `evil: true` is only for document.write() https://github.com/jshint/jshint/issues/519
 			// TODO: don't create so many globals in tests

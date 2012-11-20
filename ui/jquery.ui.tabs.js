@@ -23,7 +23,12 @@ function getNextTabId() {
 
 function isLocal( anchor ) {
 	return anchor.hash.length > 1 &&
-		anchor.href.replace( rhash, "" ) === location.href.replace( rhash, "" );
+		anchor.href.replace( rhash, "" ) ===
+			location.href.replace( rhash, "" )
+				// support: Safari 5.1
+				// Safari 5.1 doesn't encode spaces in window.location
+				// but it does encode spaces from anchors (#8777)
+				.replace( /\s/g, "%20" );
 }
 
 $.widget( "ui.tabs", {
@@ -45,8 +50,7 @@ $.widget( "ui.tabs", {
 	},
 
 	_create: function() {
-		var panel,
-			that = this,
+		var that = this,
 			options = this.options,
 			active = options.active,
 			locationHash = location.hash.substring( 1 );
@@ -295,8 +299,7 @@ $.widget( "ui.tabs", {
 	},
 
 	refresh: function() {
-		var next,
-			options = this.options,
+		var options = this.options,
 			lis = this.tablist.children( ":has(a[href])" );
 
 		// get disabled tabs from class attribute from HTML
@@ -724,6 +727,8 @@ $.widget( "ui.tabs", {
 			}
 		});
 
+		this.panels.show();
+
 		if ( this.options.heightStyle !== "content" ) {
 			this.panels.css( "height", "" );
 		}
@@ -922,7 +927,7 @@ if ( $.uiBackCompat !== false ) {
 			this._super();
 		},
 
-		url: function( index, url ){
+		url: function( index ){
 			this.anchors.eq( index ).removeData( "cache.tabs" );
 			this._superApply( arguments );
 		}
@@ -1158,7 +1163,7 @@ if ( $.uiBackCompat !== false ) {
 			}
 		},
 
-		_eventHandler: function( event ) {
+		_eventHandler: function() {
 			this._superApply( arguments );
 			this.options.selected = this.options.active;
 			if ( this.options.selected === false ) {
@@ -1182,15 +1187,20 @@ if ( $.uiBackCompat !== false ) {
 			}
 		},
 		_trigger: function( type, event, data ) {
-			var ret = this._superApply( arguments );
+			var tab, panel,
+				ret = this._superApply( arguments );
+
 			if ( !ret ) {
 				return false;
 			}
-			if ( type === "beforeActivate" && data.newTab.length ) {
+
+			if ( type === "beforeActivate" ) {
+				tab = data.newTab.length ? data.newTab : data.oldTab;
+				panel = data.newPanel.length ? data.newPanel : data.oldPanel;
 				ret = this._super( "select", event, {
-					tab: data.newTab.find( ".ui-tabs-anchor" )[ 0],
-					panel: data.newPanel[ 0 ],
-					index: data.newTab.closest( "li" ).index()
+					tab: tab.find( ".ui-tabs-anchor" )[ 0],
+					panel: panel[ 0 ],
+					index: tab.closest( "li" ).index()
 				});
 			} else if ( type === "activate" && data.newTab.length ) {
 				ret = this._super( "show", event, {
@@ -1254,7 +1264,7 @@ if ( $.uiBackCompat !== false ) {
 				this._cookie( this.options.active, this.options.cookie );
 			}
 		},
-		_eventHandler: function( event ) {
+		_eventHandler: function() {
 			this._superApply( arguments );
 			if ( this.options.cookie ) {
 				this._cookie( this.options.active, this.options.cookie );
