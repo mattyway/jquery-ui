@@ -876,6 +876,125 @@ $.ui.plugin.add("resizable", "alsoResize", {
 	}
 });
 
+$.ui.plugin.add("resizable", "snap", {
+	start: function(event, ui) {
+		var self = $(this).data("ui-resizable"), o = self.options;
+		self.snapElements = [];
+		var useOffset = self._helper != null;
+
+		$(o.snap.constructor != String ? ( o.snap.items || ':data(ui-resizable)' ) : o.snap).each(function() {
+			if(this != self.element[0]){
+
+				var inst = $(this).data("ui-resizable");
+				var el = null;
+				if(inst != null) {
+					el = inst.element;
+				}
+				else {
+					el = $(this);
+				}
+
+				var curleft = useOffset ? el.offset().left : parseFloat(el.css('left'), 10) || 0;
+				var curtop =  useOffset ? el.offset().top : parseFloat(el.css('top'), 10) || 0;
+
+				var curwidth = el.width();
+				var curheight = el.height();
+
+				self.snapElements.push({
+					item: this,
+					width: curwidth,
+					height: curheight,
+					top: curtop,
+					left: curleft
+				});
+			}
+		});
+
+	},
+	resize: function(event, ui) {
+		var self = $(this).data("ui-resizable"), o = self.options;
+
+		var d = (o.snapTolerance === undefined ? 20 : o.snapTolerance);
+		var mode = (o.snapMode === undefined ? 'both' : o.snapMode);
+
+		var x1 = ui.position.left, x2 = ui.position.left + ui.size.width,
+			y1 = ui.position.top, y2 = ui.position.top + ui.size.height;
+
+		var axis = {};
+		axis.n = self.axis.indexOf("n") != -1;
+		axis.s = self.axis.indexOf("s") != -1;
+		axis.w = self.axis.indexOf("w") != -1;
+		axis.e = self.axis.indexOf("e") != -1;
+
+		// Container to hold returned position and size.
+		var snapped = {};
+
+		for (var index = self.snapElements.length - 1; index >= 0; index--){
+
+			var l = self.snapElements[index].left, r = l + self.snapElements[index].width,
+				t = self.snapElements[index].top, b = t + self.snapElements[index].height;
+
+			var o = {};
+			var i = {};
+
+			// Check for snapping on the outside of the element.
+			if(mode != 'inner') {
+				o.ts = Math.abs(t - y2) <= d;
+				o.bs = Math.abs(b - y1) <= d;
+				o.ls = Math.abs(l - x2) <= d;
+				o.rs = Math.abs(r - x1) <= d;
+			}
+
+			// Check for snapping on the inside of the element.
+			if(mode != 'outer') {
+				i.ts = Math.abs(t - y1) <= d;
+				i.bs = Math.abs(b - y2) <= d;
+				i.ls = Math.abs(l - x1) <= d;
+				i.rs = Math.abs(r - x2) <= d;
+			}
+
+			// If the resizeable would touch the snapElement if they were snapped together.
+			var v = (y2 >= t && y2 <= b) || (y1 >= t && y1 <= b) || (y1 <= t && y2 >= b) || o.ts || o.bs || i.ts || i.bs;
+			var h = (x2 >= l && x2 <= r) || (x1 >= l && x1 <= r) || (x1 <= l && x2 >= r) || o.ls || o.rs || i.ls || i.rs;
+
+			if(o.ts && axis.s && h) {
+				snapped.height = t - ui.position.top;
+			}
+			if(o.bs && axis.n && h) {
+				snapped.height = ui.size.height - (b - ui.position.top);
+				snapped.top = b;
+			}
+			if(o.ls && axis.e && v) {
+				snapped.width = l - ui.position.left;
+			}
+			if(o.rs && axis.w && v) {
+				snapped.width = ui.size.width - (r - ui.position.left);
+				snapped.left = r;
+			}
+
+			if(i.ts && axis.n && h) {
+				snapped.height = ui.size.height - (t - ui.position.top);
+				snapped.top = t;
+			}
+			if(i.bs && axis.s && h) {
+				snapped.height = b - ui.position.top;
+			}
+			if(i.ls && axis.w && v) {
+				snapped.width = ui.size.width - (l - ui.position.left);
+				snapped.left = l;
+			}
+			if(i.rs && axis.e && v) {
+				snapped.width = r - ui.position.left;
+			}
+		}
+
+		if(snapped.left != undefined) ui.position.left = snapped.left;
+		if(snapped.top != undefined) ui.position.top = snapped.top;
+		if(snapped.width != undefined) ui.size.width = snapped.width;
+		if(snapped.height != undefined) ui.size.height = snapped.height;
+	},
+});
+
 $.ui.plugin.add("resizable", "ghost", {
 
 	start: function() {
