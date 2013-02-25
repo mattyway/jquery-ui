@@ -132,7 +132,7 @@ $.widget("ui.droppable", {
 			else {
 				var zStack = $.ui.ddmanager.zStack[draggable.options.scope];
 				
-				if(zStack.indexOf(this) == -1) {
+				if($.inArray(this, zStack) == -1) {
 					var lastHighest = zStack[zStack.length - 1];
 
 					zStack.push(this);
@@ -165,7 +165,7 @@ $.widget("ui.droppable", {
 
 				var lastHighest = zStack[zStack.length - 1];
 
-				zStack.splice(zStack.indexOf(this), 1);
+				zStack.splice($.inArray(this, zStack), 1);
 
 				zStack.sort(this._sortHighest);
 
